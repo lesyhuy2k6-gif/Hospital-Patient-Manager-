@@ -1,5 +1,6 @@
 # connection.py
 import pymysql
+import pymysql.cursors
 from tkinter import messagebox
 
 # Configuration (Update this)
@@ -18,7 +19,7 @@ def get_connection():
             user=DB_CONFIG["user"],
             passwd=DB_CONFIG["passwd"],
             database=DB_CONFIG["database"],
-            cursorclass=pymysql.cursors.Cursor
+            cursorclass=pymysql.cursors.DictCursor
         )
     except Exception as e:
         messagebox.showerror("Connection Error", f"Failed to connect to MySQL: {e}")

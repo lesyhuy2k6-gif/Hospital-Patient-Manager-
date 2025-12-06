@@ -84,10 +84,10 @@ def get_session_fk_data():
     p_rows = db_execute(p_query, fetch=True) or []
     d_rows = db_execute(d_query, fetch=True) or []
     t_rows = db_execute(t_query, fetch=True) or []
-
-    p = [f"{r[0]}: {r[1]}" for r in p_rows]
-    d = [f"{r[0]}: {r[1]}" for r in d_rows]
-    t = [f"{r[0]}: {r[1]}" for r in t_rows]
+    # db_execute returns rows as dicts (DictCursor). Use column names for safety.
+    p = [f"{r.get('patient_id')}: {r.get('name')}" for r in p_rows]
+    d = [f"{r.get('doctor_id')}: {r.get('name')}" for r in d_rows]
+    t = [f"{r.get('treatment_id')}: {r.get('name')}" for r in t_rows]
     return p, d, t
 
 def add_session(p_var, d_var, t_var, date_s):

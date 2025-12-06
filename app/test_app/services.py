@@ -76,9 +76,18 @@ def load_sessions_data():
     return db_execute(q.S_SELECT_ALL, fetch=True)
 
 def get_session_fk_data():
-    p = [f"{r[0]}: {r[1]}" for r in db_execute(q.P_SELECT_ALL.replace('birthdate', ''), fetch=True)]
-    d = [f"{r[0]}: {r[1]}" for r in db_execute(q.D_SELECT_ALL.replace(', specialty', ''), fetch=True)]
-    t = [f"{r[0]}: {r[1]}" for r in db_execute(q.T_SELECT_ALL.replace(', cost', ''), fetch=True)]
+    # Build explicit, safe queries for FK dropdowns instead of string replace
+    p_query = "SELECT patient_id, name FROM patients ORDER BY patient_id"
+    d_query = "SELECT doctor_id, name FROM doctors ORDER BY doctor_id"
+    t_query = "SELECT treatment_id, name FROM treatments ORDER BY treatment_id"
+
+    p_rows = db_execute(p_query, fetch=True) or []
+    d_rows = db_execute(d_query, fetch=True) or []
+    t_rows = db_execute(t_query, fetch=True) or []
+
+    p = [f"{r[0]}: {r[1]}" for r in p_rows]
+    d = [f"{r[0]}: {r[1]}" for r in d_rows]
+    t = [f"{r[0]}: {r[1]}" for r in t_rows]
     return p, d, t
 
 def add_session(p_var, d_var, t_var, date_s):
@@ -91,20 +100,23 @@ def update_session(sid, p_var, d_var, t_var, date_s):
     pid = int(p_var.split(":")[0]); did = int(d_var.split(":")[0]); tid = int(t_var.split(":")[0])
     db_execute(q.S_UPDATE, (pid, did, tid, date_val, int(sid)), commit=True)
 
+# services.py - search_entities (Revised)
+
 def search_entities(table, search_value):
     conn = get_connection()
-    if not conn: return []
+    if not conn: return [] # Returns safely if connection fails
+
     try:
         with conn.cursor() as cursor:
             like_val = f"%{search_value}%"
-            if table == "sessions":
-                cursor.execute(q.S_SEARCH, (like_val, like_val, like_val, like_val))
-            else:
-                query = getattr(q, f"{table[0].upper()}_SEARCH")
-                cursor.execute(query, (like_val, like_val))
+            # This block retrieves the query based on the table name's first letter
+            query = getattr(q, f"{table[0].upper()}_SEARCH") 
+            cursor.execute(query, (like_val, like_val))
             return cursor.fetchall()
     except Exception as e:
         messagebox.showerror("DB Error", f"Error searching: {e}")
         return []
     finally:
-        conn.close()
+        # FIX: Only close the connection if it was successfully opened.
+        if conn:
+            conn.close()

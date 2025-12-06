@@ -60,7 +60,9 @@ class HospitalApp:
         scr = ttk.Scrollbar(right, orient="vertical", command=self.tree.yview); self.tree.configure(yscroll=scr.set); scr.pack(side="right", fill="y")
         self.tree.bind("<Double-1>", double_click_handler)
         
-        load_func()
+        # NOTE: don't call `load_func` here because some screens (e.g. Sessions)
+        # need the caller to assign the screen-specific `self.*_fields` first.
+        # Callers should invoke `load_func()` after assigning their fields.
 
     # --- Patient Screen (P) ---
     def show_patients(self):
@@ -75,7 +77,9 @@ class HospitalApp:
             ("Refresh", self.load_patients)
         ]
         self.setup_base_screen("Patients", fields, callbacks, ("id", "name", "birthdate"), self.on_patient_double, self.load_patients)
-        self.p_fields = self.fields 
+        self.p_fields = self.fields
+        # now safe to call load
+        self.load_patients()
 
     def load_patients(self):
         for r in self.tree.get_children(): self.tree.delete(r)
@@ -130,6 +134,7 @@ class HospitalApp:
         ]
         self.setup_base_screen("Doctors", fields, callbacks, ("id", "name", "specialty"), self.on_doctor_double, self.load_doctors)
         self.d_fields = self.fields
+        self.load_doctors()
 
     def load_doctors(self):
         for r in self.tree.get_children(): self.tree.delete(r)
@@ -182,6 +187,7 @@ class HospitalApp:
         ]
         self.setup_base_screen("Treatments", fields, callbacks, ("id", "name", "cost"), self.on_treatment_double, self.load_treatments)
         self.t_fields = self.fields
+        self.load_treatments()
 
     def load_treatments(self):
         for r in self.tree.get_children(): self.tree.delete(r)
@@ -239,6 +245,8 @@ class HospitalApp:
         ]
         self.setup_base_screen("Sessions", fields, callbacks, ("id", "patient", "doctor", "treatment", "date"), self.on_session_double, self.load_sessions)
         self.s_fields = self.fields
+        # now that `self.s_fields` exists, it's safe to load sessions (and set dropdowns)
+        self.load_sessions()
 
     def load_sessions(self):
         # Reload dropdowns on refresh as FK data might have changed

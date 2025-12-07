@@ -24,6 +24,7 @@ class DashboardTab(ttk.Frame):
         self.pack(fill="both", expand=True)
         self.kpi_data = {}
         self.chart_data = None
+        self.current_chart = "cost"  # 'cost' or 'sessions'
         
         # UI components
         self.kpi_text = None
@@ -41,6 +42,11 @@ class DashboardTab(ttk.Frame):
         top.pack(fill="x")
         ttk.Button(top, text="Refresh Dashboard", command=self.refresh_dashboard).pack(side="left")
         ttk.Button(top, text="Export KPIs CSV", command=self.export_kpi_csv).pack(side="left", padx=8)
+        # Chart selection buttons
+        chart_btn_frame = ttk.Frame(top)
+        chart_btn_frame.pack(side="right")
+        ttk.Button(chart_btn_frame, text="Original Graph", command=self.show_original_graph).pack(side="left", padx=4)
+        ttk.Button(chart_btn_frame, text="Sessions Over Time", command=self.show_sessions_graph).pack(side="left", padx=4)
 
         # --- Body Frame (KPIs on Left, Chart on Right) ---
         body = ttk.Frame(self, padding=8)
@@ -111,7 +117,12 @@ class DashboardTab(ttk.Frame):
                 rows = cur.fetchall()
                 # Ensure conversion to standard float type for plotting; query returns `cost`
                 self.chart_data = [float(r.get('cost')) for r in rows if r.get('cost') is not None]
-                self.draw_cost_distribution_chart()
+                # Draw the currently selected chart
+                if self.current_chart == "cost":
+                    self.draw_cost_distribution_chart()
+                else:
+                    # If sessions chart is selected, draw it after fetching data
+                    self.draw_sessions_over_time_chart()
             
         except Exception as e:
             messagebox.showerror("Dashboard Error", f"Could not refresh dashboard: {e}")
@@ -135,6 +146,91 @@ class DashboardTab(ttk.Frame):
             self.ax.set_xlabel("Cost")
             self.ax.set_ylabel("Frequency")
         
+        self.figure.tight_layout()
+        self.chart_canvas.draw()
+
+
+    def show_original_graph(self):
+        """Switch to original treatment-cost distribution graph."""
+        self.current_chart = "cost"
+        # If we have cost data already, draw it, otherwise refresh to fetch
+        if self.chart_data:
+            self.draw_cost_distribution_chart()
+        else:
+            self.refresh_dashboard()
+
+
+    def show_sessions_graph(self):
+        """Switch to sessions-over-time graph and fetch data to display."""
+        self.current_chart = "sessions"
+        # Draw sessions chart (method fetches its own data)
+        self.draw_sessions_over_time_chart()
+
+
+    def draw_sessions_over_time_chart(self):
+        """Queries sessions grouped by date and draws a time-series chart of counts."""
+        if self.chart_canvas is None: return
+
+        # Query DB for session counts by date
+        try:
+            con = get_connection()
+            if not con:
+                messagebox.showerror("Connection Error", "Could not connect to database for sessions chart.")
+                return
+            cur = con.cursor()
+            cur.execute("SELECT treatment_date, COUNT(*) AS cnt FROM sessions WHERE treatment_date IS NOT NULL GROUP BY treatment_date ORDER BY treatment_date")
+            rows = cur.fetchall()
+            # rows expected as dict-like with keys 'treatment_date' and 'cnt'
+            dates = []
+            counts = []
+            for r in rows:
+                d = r.get('treatment_date') if isinstance(r, dict) else r[0]
+                c = r.get('cnt') if isinstance(r, dict) else r[1]
+                if d is None:
+                    continue
+                # Ensure date is a datetime/date object or parseable string
+                if isinstance(d, str):
+                    try:
+                        d = datetime.fromisoformat(d).date()
+                    except Exception:
+                        try:
+                            d = datetime.strptime(d, "%Y-%m-%d").date()
+                        except Exception:
+                            continue
+                dates.append(d)
+                counts.append(int(c))
+        except Exception as e:
+            messagebox.showerror("Sessions Chart Error", f"Could not load sessions data: {e}")
+            return
+        finally:
+            try:
+                if con: con.close()
+            except Exception:
+                pass
+
+        # Draw
+        self.ax.clear()
+        if not dates:
+            self.ax.text(0.5, 0.5, "No session data", ha="center")
+        else:
+            # Sort by date (should already be sorted by SQL) and plot
+            # Convert dates to matplotlib-friendly values if necessary
+            try:
+                import matplotlib.dates as mdates
+                self.ax.plot(dates, counts, marker='o')
+                self.ax.set_title("Sessions Over Time")
+                self.ax.set_xlabel("Date")
+                self.ax.set_ylabel("Number of Sessions")
+                self.ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+                self.ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(mdates.AutoDateLocator()))
+            except Exception:
+                # Fallback to bar chart with string labels
+                labels = [d.strftime("%Y-%m-%d") if hasattr(d, 'strftime') else str(d) for d in dates]
+                self.ax.bar(labels, counts)
+                self.ax.set_title("Sessions Over Time")
+                self.ax.set_xlabel("Date")
+                self.ax.set_ylabel("Number of Sessions")
+
         self.figure.tight_layout()
         self.chart_canvas.draw()
         

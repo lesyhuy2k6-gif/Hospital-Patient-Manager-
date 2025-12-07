@@ -6,6 +6,7 @@ import csv
 import services as s
 import queries as q
 from dashboard import DashboardTab 
+import re
 
 # --- Helper Functions ---
 
@@ -108,22 +109,27 @@ class HospitalApp:
     def clear_container(self, frame):
         for w in frame.winfo_children(): w.destroy()
 
+    def _validate_alpha(self, proposed: str) -> bool:
+        """Validate that the proposed value contains only letters, spaces, hyphens or apostrophes.
+        Used as a `validatecommand` for Entry widgets. Empty string is allowed during editing.
+        """
+        if proposed is None or proposed == "":
+            return True
+        return bool(re.match(r"^[A-Za-z\s\-']*$", proposed))
+
     def setup_base_screen(self, frame, fields, callbacks, cols, double_click_handler, load_func):
         self.clear_container(frame)
         
-        base_frame = tk.Frame(frame, padx=8, pady=8, bg=self.colors['bg_main'])
-        base_frame.pack(fill="both", expand=True)
-        left = tk.Frame(base_frame, bg=self.colors['bg_main']); left.pack(side="left", fill="y", padx=8)
+        base_frame = tk.Frame(frame, padx=8, pady=8); base_frame.pack(fill="both", expand=True)
+        left = tk.Frame(base_frame); left.pack(side="left", fill="y", padx=8)
 
         # Input Fields Setup...
         self.fields = {}
         row = 0
         for label_text, var_name, entry_cls, *extra in fields:
-            tk.Label(left, text=label_text, bg=self.colors['bg_main'], 
-                    fg=self.colors['text_dark'], font=('Arial', 10)).grid(row=row, column=0, sticky="w", pady=6)
+            tk.Label(left, text=label_text).grid(row=row, column=0, sticky="w", pady=6)
             if entry_cls == tk.Entry:
-                self.fields[var_name] = tk.Entry(left, bg=self.colors['bg_light'], 
-                                                 fg=self.colors['text_dark'], relief="solid", borderwidth=1)
+                self.fields[var_name] = tk.Entry(left)
                 self.fields[var_name].grid(row=row, column=1, pady=6)
             elif entry_cls == ttk.Combobox:
                 self.fields[f'{var_name}_var'] = tk.StringVar()
@@ -133,23 +139,12 @@ class HospitalApp:
             row += 1
 
         # Buttons Setup...
-        bf = tk.Frame(left, bg=self.colors['bg_main']); bf.grid(row=row, column=0, columnspan=2, pady=10)
+        bf = tk.Frame(left); bf.grid(row=row, column=0, columnspan=2, pady=10)
         for text, cmd in callbacks:
-            # Color buttons based on action
-            if "Delete" in text:
-                btn_color = self.colors['danger']
-            elif "Add" in text:
-                btn_color = self.colors['success']
-            else:
-                btn_color = self.colors['primary']
-            
-            tk.Button(bf, text=text, width=14 if text == "Delete Selected" else 10, command=cmd,
-                     bg=btn_color, fg=self.colors['text_light'], font=('Arial', 9, 'bold'),
-                     relief="raised", borderwidth=1, activebackground=self.colors['bg_dark']).pack(side="left", padx=4)
+            tk.Button(bf, text=text, width=14 if text == "Delete Selected" else 10, command=cmd).pack(side="left", padx=4)
 
         # Table Setup...
-        right = tk.Frame(base_frame, bg=self.colors['bg_main'])
-        right.pack(side="right", fill="both", expand=True, padx=8)
+        right = tk.Frame(base_frame); right.pack(side="right", fill="both", expand=True, padx=8)
         self.tree = ttk.Treeview(right, columns=cols, show="headings")
         for c in cols:
             self.tree.heading(c, text=c.replace("_", " ").title())
@@ -176,6 +171,13 @@ class HospitalApp:
         ]
         self.p_tree = self.setup_base_screen(self.tab_patients, fields, callbacks, ("id", "name", "birthdate", "phone", "gender"), self.on_patient_double, self.load_patients)
         self.p_fields = self.fields
+        # Add live validation to the Patient Name entry to disallow digits
+        try:
+            vcmd = (self.root.register(self._validate_alpha), '%P')
+            if 'p_name' in self.p_fields and isinstance(self.p_fields['p_name'], tk.Entry):
+                self.p_fields['p_name'].config(validate='key', validatecommand=vcmd)
+        except Exception:
+            pass
         self.load_patients()
 
     def load_patients(self):
@@ -193,6 +195,10 @@ class HospitalApp:
 
     def _p_add(self):
         name = self.p_fields['p_name'].get().strip(); bdate = self.p_fields['p_bdate'].get().strip()
+        # Validate name contains only alphabetic characters, spaces, hyphens or apostrophes
+        if not re.match(r"^[A-Za-z\s\-']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+            return
         phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
         try: s.add_patient(name, bdate, phone, gender); messagebox.showinfo("Success", "Patient added"); self.clear_patient_fields(); self.load_patients()
@@ -202,6 +208,9 @@ class HospitalApp:
         pid = self.p_fields['p_id'].get().strip()
         if not pid: messagebox.showerror("Error", "Enter patient ID (or double-click a row)."); return
         name = self.p_fields['p_name'].get().strip(); bdate = self.p_fields['p_bdate'].get().strip()
+        if not re.match(r"^[A-Za-z\s\-']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+            return
         phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
         try: s.update_patient(pid, name, bdate, phone, gender); messagebox.showinfo("Success", f"Patient {pid} updated"); self.load_patients()
@@ -227,10 +236,15 @@ class HospitalApp:
     
     # --- Doctor Screen (D) ---
     def build_doctors_tab(self):
+        # Use a Combobox for Specialty so users pick from standardized list
+        specialty_options = [
+            'General', 'Cardiology', 'Dermatology', 'Neurology', 'Pediatrics',
+            'Oncology', 'Orthopedics', 'ENT', 'Emergency', 'Other'
+        ]
         fields = [
             ("Doctor ID (blank for new):", 'd_id', tk.Entry),
             ("Name:", 'd_name', tk.Entry),
-            ("Specialty:", 'd_spec', tk.Entry),
+            ("Specialty:", 'd_spec', ttk.Combobox, specialty_options),
             ("Phone:", 'd_phone', tk.Entry),
             ("Gender:", 'd_gender', ttk.Combobox, ['Male', 'Female', 'Other'])
         ]
@@ -241,6 +255,13 @@ class HospitalApp:
         ]
         self.d_tree = self.setup_base_screen(self.tab_doctors, fields, callbacks, ("id", "name", "specialty", "phone", "gender"), self.on_doctor_double, self.load_doctors)
         self.d_fields = self.fields
+        # Add live validation to the Name entry to disallow digits
+        try:
+            vcmd = (self.root.register(self._validate_alpha), '%P')
+            if 'd_name' in self.d_fields and isinstance(self.d_fields['d_name'], tk.Entry):
+                self.d_fields['d_name'].config(validate='key', validatecommand=vcmd)
+        except Exception:
+            pass
         self.load_doctors()
 
     def load_doctors(self):
@@ -252,11 +273,27 @@ class HospitalApp:
             self.d_tree.insert("", "end", values=(row.get('doctor_id'), row.get('name'), row.get('specialty'), phone, gender))
 
     def clear_doctor_fields(self):
-        for k in self.d_fields: 
-            if isinstance(self.d_fields[k], tk.Entry): self.d_fields[k].delete(0, tk.END)
+        for k in list(self.d_fields.keys()):
+            v = self.d_fields[k]
+            if isinstance(v, tk.Entry):
+                v.delete(0, tk.END)
+            elif isinstance(v, ttk.Combobox):
+                # combobox has an associated variable stored under '{key}_var'
+                var_key = f"{k}_var"
+                if var_key in self.d_fields:
+                    try:
+                        self.d_fields[var_key].set("")
+                    except Exception:
+                        pass
 
     def _d_add(self):
-        name = self.d_fields['d_name'].get().strip(); spec = self.d_fields['d_spec'].get().strip()
+        name = self.d_fields['d_name'].get().strip()
+        # Validate name contains only alphabetic characters, spaces, hyphens or apostrophes
+        if not re.match(r"^[A-Za-z\s\-']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+            return
+        # read specialty from var if present (combobox), otherwise widget
+        spec = self.d_fields['d_spec_var'].get().strip() if 'd_spec_var' in self.d_fields else self.d_fields['d_spec'].get().strip()
         phone = self.d_fields['d_phone'].get().strip(); gender = self.d_fields['d_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
         try: s.add_doctor(name, spec, phone, gender); messagebox.showinfo("Success", "Doctor added"); self.clear_doctor_fields(); self.load_doctors()
@@ -265,7 +302,11 @@ class HospitalApp:
     def _d_update(self):
         did = self.d_fields['d_id'].get().strip()
         if not did: messagebox.showerror("Error", "Enter doctor ID"); return
-        name = self.d_fields['d_name'].get().strip(); spec = self.d_fields['d_spec'].get().strip()
+        name = self.d_fields['d_name'].get().strip()
+        if not re.match(r"^[A-Za-z\s\-']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+            return
+        spec = self.d_fields['d_spec_var'].get().strip() if 'd_spec_var' in self.d_fields else self.d_fields['d_spec'].get().strip()
         phone = self.d_fields['d_phone'].get().strip(); gender = self.d_fields['d_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
         try: s.update_doctor(did, name, spec, phone, gender); messagebox.showinfo("Success", f"Doctor {did} updated"); self.load_doctors()
@@ -285,7 +326,11 @@ class HospitalApp:
         vals = self.d_tree.item(sel[0], "values")
         self.d_fields['d_id'].delete(0, tk.END); self.d_fields['d_id'].insert(0, vals[0])
         self.d_fields['d_name'].delete(0, tk.END); self.d_fields['d_name'].insert(0, vals[1])
-        self.d_fields['d_spec'].delete(0, tk.END); self.d_fields['d_spec'].insert(0, vals[2])
+        # Specialty may be a combobox (has 'd_spec_var')
+        if 'd_spec_var' in self.d_fields:
+            self.d_fields['d_spec_var'].set(vals[2] if vals[2] else "")
+        else:
+            self.d_fields['d_spec'].delete(0, tk.END); self.d_fields['d_spec'].insert(0, vals[2])
         self.d_fields['d_phone'].delete(0, tk.END); self.d_fields['d_phone'].insert(0, vals[3] if vals[3] else "")
         self.d_fields['d_gender_var'].set(vals[4] if vals[4] else "")
 

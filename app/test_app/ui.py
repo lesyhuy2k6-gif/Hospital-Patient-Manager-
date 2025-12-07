@@ -24,14 +24,55 @@ def parse_date_or_none(date_str):
 
 class HospitalApp:
     def __init__(self, root):
+        # --- COLOR THEME CONFIGURATION ---
+        self.colors = {
+            'bg_main': '#f0f0f0',        # Main background
+            'bg_dark': '#2c3e50',        # Dark background (header)
+            'bg_light': '#ecf0f1',       # Light background
+            'text_dark': '#2c3e50',      # Dark text
+            'text_light': '#ffffff',     # Light text
+            'primary': '#3498db',        # Primary color (buttons)
+            'success': '#27ae60',        # Success color (add button)
+            'danger': '#e74c3c',         # Danger color (delete button)
+            'warning': '#f39c12',        # Warning color
+            'border': '#bdc3c7'          # Border color
+        }
+        
         # --- Root Setup ---
         self.root = root
         root.title("Hospital Management System")
         w, h = root.winfo_screenwidth(), root.winfo_screenheight()
         root.geometry(f"{int(w*0.85)}x{int(h*0.80)}+20+20")
+        root.configure(bg=self.colors['bg_main'])
+        
+        # --- TTK STYLE CONFIGURATION ---
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Configure styles for ttk widgets
+        style.configure('TLabel', background=self.colors['bg_main'], foreground=self.colors['text_dark'])
+        style.configure('TFrame', background=self.colors['bg_main'])
+        style.configure('TNotebook', background=self.colors['bg_main'])
+        style.configure('TNotebook.Tab', padding=[20, 10], font=('Arial', 10))
+        style.map('TNotebook.Tab', background=[('selected', self.colors['primary'])])
+        
+        style.configure('TButton', font=('Arial', 10), padding=5)
+        style.map('TButton',
+                  background=[('active', self.colors['primary']),
+                              ('pressed', self.colors['bg_dark'])])
+        
+        # Configure Treeview style
+        style.configure('Treeview', background=self.colors['bg_light'], 
+                       foreground=self.colors['text_dark'], fieldbackground=self.colors['bg_light'],
+                       font=('Arial', 9), rowheight=25)
+        style.configure('Treeview.Heading', background=self.colors['primary'], 
+                       foreground=self.colors['text_light'], font=('Arial', 10, 'bold'))
+        style.map('Treeview', background=[('selected', self.colors['primary'])])
         
         # --- Main Title ---
-        tk.Label(root, text="Hospital Management System", font=("Arial", 20, "bold"), bd=2, relief="groove", pady=6).pack(fill="x")
+        tk.Label(root, text="Hospital Management System", font=("Arial", 20, "bold"), 
+                bd=2, relief="groove", pady=6, bg=self.colors['bg_dark'], 
+                fg=self.colors['text_light']).pack(fill="x")
         
         # --- Tab Navigation ---
         self.tabs = ttk.Notebook(root)
@@ -70,16 +111,19 @@ class HospitalApp:
     def setup_base_screen(self, frame, fields, callbacks, cols, double_click_handler, load_func):
         self.clear_container(frame)
         
-        base_frame = tk.Frame(frame, padx=8, pady=8); base_frame.pack(fill="both", expand=True)
-        left = tk.Frame(base_frame); left.pack(side="left", fill="y", padx=8)
+        base_frame = tk.Frame(frame, padx=8, pady=8, bg=self.colors['bg_main'])
+        base_frame.pack(fill="both", expand=True)
+        left = tk.Frame(base_frame, bg=self.colors['bg_main']); left.pack(side="left", fill="y", padx=8)
 
         # Input Fields Setup...
         self.fields = {}
         row = 0
         for label_text, var_name, entry_cls, *extra in fields:
-            tk.Label(left, text=label_text).grid(row=row, column=0, sticky="w", pady=6)
+            tk.Label(left, text=label_text, bg=self.colors['bg_main'], 
+                    fg=self.colors['text_dark'], font=('Arial', 10)).grid(row=row, column=0, sticky="w", pady=6)
             if entry_cls == tk.Entry:
-                self.fields[var_name] = tk.Entry(left)
+                self.fields[var_name] = tk.Entry(left, bg=self.colors['bg_light'], 
+                                                 fg=self.colors['text_dark'], relief="solid", borderwidth=1)
                 self.fields[var_name].grid(row=row, column=1, pady=6)
             elif entry_cls == ttk.Combobox:
                 self.fields[f'{var_name}_var'] = tk.StringVar()
@@ -89,12 +133,23 @@ class HospitalApp:
             row += 1
 
         # Buttons Setup...
-        bf = tk.Frame(left); bf.grid(row=row, column=0, columnspan=2, pady=10)
+        bf = tk.Frame(left, bg=self.colors['bg_main']); bf.grid(row=row, column=0, columnspan=2, pady=10)
         for text, cmd in callbacks:
-            tk.Button(bf, text=text, width=14 if text == "Delete Selected" else 10, command=cmd).pack(side="left", padx=4)
+            # Color buttons based on action
+            if "Delete" in text:
+                btn_color = self.colors['danger']
+            elif "Add" in text:
+                btn_color = self.colors['success']
+            else:
+                btn_color = self.colors['primary']
+            
+            tk.Button(bf, text=text, width=14 if text == "Delete Selected" else 10, command=cmd,
+                     bg=btn_color, fg=self.colors['text_light'], font=('Arial', 9, 'bold'),
+                     relief="raised", borderwidth=1, activebackground=self.colors['bg_dark']).pack(side="left", padx=4)
 
         # Table Setup...
-        right = tk.Frame(base_frame); right.pack(side="right", fill="both", expand=True, padx=8)
+        right = tk.Frame(base_frame, bg=self.colors['bg_main'])
+        right.pack(side="right", fill="both", expand=True, padx=8)
         self.tree = ttk.Treeview(right, columns=cols, show="headings")
         for c in cols:
             self.tree.heading(c, text=c.replace("_", " ").title())

@@ -1,7 +1,7 @@
 # services.py
 from datetime import datetime
 from tkinter import messagebox
-from connection import get_connection
+from db.connection import get_connection
 import queries as q
 
 def ensure_tables():
@@ -46,23 +46,23 @@ def load_entities(table_name):
     rows = db_execute(query, fetch=True)
     return rows if rows else []
 
-def add_patient(name, bdate_s):
+def add_patient(name, bdate_s, phone="", gender=""):
     bdate = parse_date(bdate_s)
-    db_execute(q.P_INSERT, (name, bdate), commit=True)
+    db_execute(q.P_INSERT, (name, bdate, phone or None, gender or None), commit=True)
 
-def update_patient(pid, name, bdate_s):
+def update_patient(pid, name, bdate_s, phone="", gender=""):
     bdate = parse_date(bdate_s)
-    db_execute(q.P_UPDATE, (name, bdate, int(pid)), commit=True)
+    db_execute(q.P_UPDATE, (name, bdate, phone or None, gender or None, int(pid)), commit=True)
 
 def delete_entity(table_name, entity_id):
     query = getattr(q, f"{table_name[0].upper()}_DELETE")
     db_execute(query, (int(entity_id),), commit=True)
 
-def add_doctor(name, spec):
-    db_execute(q.D_INSERT, (name, spec), commit=True)
+def add_doctor(name, spec, phone="", gender=""):
+    db_execute(q.D_INSERT, (name, spec, phone or None, gender or None), commit=True)
 
-def update_doctor(did, name, spec):
-    db_execute(q.D_UPDATE, (name, spec, int(did)), commit=True)
+def update_doctor(did, name, spec, phone="", gender=""):
+    db_execute(q.D_UPDATE, (name, spec, phone or None, gender or None, int(did)), commit=True)
 
 def add_treatment(name, cost_s):
     cost = float(cost_s) if cost_s else 0.0

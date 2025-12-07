@@ -36,18 +36,18 @@ CREATE_TABLES = [
 ]
 
 # Patient Queries
-P_SELECT_ALL = "SELECT patient_id, name, birthdate FROM patients ORDER BY patient_id"
-P_INSERT = "INSERT INTO patients (name, birthdate) VALUES (%s,%s)"
-P_UPDATE = "UPDATE patients SET name=%s, birthdate=%s WHERE patient_id=%s"
+P_SELECT_ALL = "SELECT patient_id, name, birthdate, phone, gender FROM patients ORDER BY patient_id"
+P_INSERT = "INSERT INTO patients (name, birthdate, phone, gender) VALUES (%s,%s,%s,%s)"
+P_UPDATE = "UPDATE patients SET name=%s, birthdate=%s, phone=%s, gender=%s WHERE patient_id=%s"
 P_DELETE = "DELETE FROM patients WHERE patient_id=%s"
-P_SEARCH = "SELECT patient_id, name, birthdate FROM patients WHERE patient_id LIKE %s OR name LIKE %s"
+P_SEARCH = "SELECT patient_id, name, birthdate, phone, gender FROM patients WHERE patient_id LIKE %s OR name LIKE %s"
 
 # Doctor Queries - FIX: Replaced 'id' with 'doctor_id'
-D_SELECT_ALL = "SELECT doctor_id, name, specialty FROM doctors ORDER BY doctor_id"
-D_INSERT = "INSERT INTO doctors (name, specialty) VALUES (%s,%s)"
-D_UPDATE = "UPDATE doctors SET name=%s, specialty=%s WHERE doctor_id=%s"
+D_SELECT_ALL = "SELECT doctor_id, name, specialty, phone, gender FROM doctors ORDER BY doctor_id"
+D_INSERT = "INSERT INTO doctors (name, specialty, phone, gender) VALUES (%s,%s,%s,%s)"
+D_UPDATE = "UPDATE doctors SET name=%s, specialty=%s, phone=%s, gender=%s WHERE doctor_id=%s"
 D_DELETE = "DELETE FROM doctors WHERE doctor_id=%s"
-D_SEARCH = "SELECT doctor_id, name, specialty FROM doctors WHERE doctor_id LIKE %s OR name LIKE %s"
+D_SEARCH = "SELECT doctor_id, name, specialty, phone, gender FROM doctors WHERE doctor_id LIKE %s OR name LIKE %s"
 
 # Treatment Queries - FIX: Replaced 'id' with 'treatment_id'
 T_SELECT_ALL = "SELECT treatment_id, name, cost FROM treatments ORDER BY treatment_id"

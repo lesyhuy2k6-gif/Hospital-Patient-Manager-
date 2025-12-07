@@ -110,23 +110,27 @@ class HospitalApp:
         fields = [
             ("Patient ID (blank for new):", 'p_id', tk.Entry),
             ("Name:", 'p_name', tk.Entry),
-            ("Birthdate (YYYY-MM-DD):", 'p_bdate', tk.Entry)
+            ("Birthdate (YYYY-MM-DD):", 'p_bdate', tk.Entry),
+            ("Phone:", 'p_phone', tk.Entry),
+            ("Gender:", 'p_gender', ttk.Combobox, ['Male', 'Female', 'Other'])
         ]
         callbacks = [
             ("Add", self._p_add), ("Update", self._p_update),
             ("Delete Selected", self._p_delete), ("Clear", self.clear_patient_fields),
             ("Refresh", self.load_patients)
         ]
-        self.p_tree = self.setup_base_screen(self.tab_patients, fields, callbacks, ("id", "name", "birthdate"), self.on_patient_double, self.load_patients)
+        self.p_tree = self.setup_base_screen(self.tab_patients, fields, callbacks, ("id", "name", "birthdate", "phone", "gender"), self.on_patient_double, self.load_patients)
         self.p_fields = self.fields
         self.load_patients()
 
     def load_patients(self):
         for r in self.p_tree.get_children(): self.p_tree.delete(r)
         for row in s.load_entities("patients"):
-            # rows are dicts from DictCursor: {'patient_id','name','birthdate'}
+            # rows are dicts from DictCursor: {'patient_id','name','birthdate','phone','gender'}
             bdate = row.get('birthdate').isoformat() if row.get('birthdate') else ""
-            self.p_tree.insert("", "end", values=(row.get('patient_id'), row.get('name'), bdate))
+            phone = row.get('phone') or ""
+            gender = row.get('gender') or ""
+            self.p_tree.insert("", "end", values=(row.get('patient_id'), row.get('name'), bdate, phone, gender))
         
     def clear_patient_fields(self):
         for k in self.p_fields: 
@@ -134,16 +138,18 @@ class HospitalApp:
 
     def _p_add(self):
         name = self.p_fields['p_name'].get().strip(); bdate = self.p_fields['p_bdate'].get().strip()
+        phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
-        try: s.add_patient(name, bdate); messagebox.showinfo("Success", "Patient added"); self.clear_patient_fields(); self.load_patients()
+        try: s.add_patient(name, bdate, phone, gender); messagebox.showinfo("Success", "Patient added"); self.clear_patient_fields(); self.load_patients()
         except Exception as e: messagebox.showerror("Error", str(e))
     
     def _p_update(self):
         pid = self.p_fields['p_id'].get().strip()
         if not pid: messagebox.showerror("Error", "Enter patient ID (or double-click a row)."); return
         name = self.p_fields['p_name'].get().strip(); bdate = self.p_fields['p_bdate'].get().strip()
+        phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
-        try: s.update_patient(pid, name, bdate); messagebox.showinfo("Success", f"Patient {pid} updated"); self.load_patients()
+        try: s.update_patient(pid, name, bdate, phone, gender); messagebox.showinfo("Success", f"Patient {pid} updated"); self.load_patients()
         except Exception as e: messagebox.showerror("Error", str(e))
         
     def _p_delete(self):
@@ -161,28 +167,34 @@ class HospitalApp:
         self.p_fields['p_id'].delete(0, tk.END); self.p_fields['p_id'].insert(0, vals[0])
         self.p_fields['p_name'].delete(0, tk.END); self.p_fields['p_name'].insert(0, vals[1])
         self.p_fields['p_bdate'].delete(0, tk.END); self.p_fields['p_bdate'].insert(0, vals[2])
+        self.p_fields['p_phone'].delete(0, tk.END); self.p_fields['p_phone'].insert(0, vals[3] if vals[3] else "")
+        self.p_fields['p_gender_var'].set(vals[4] if vals[4] else "")
     
     # --- Doctor Screen (D) ---
     def build_doctors_tab(self):
         fields = [
             ("Doctor ID (blank for new):", 'd_id', tk.Entry),
             ("Name:", 'd_name', tk.Entry),
-            ("Specialty:", 'd_spec', tk.Entry)
+            ("Specialty:", 'd_spec', tk.Entry),
+            ("Phone:", 'd_phone', tk.Entry),
+            ("Gender:", 'd_gender', ttk.Combobox, ['Male', 'Female', 'Other'])
         ]
         callbacks = [
             ("Add", self._d_add), ("Update", self._d_update),
             ("Delete Selected", self._d_delete), ("Clear", self.clear_doctor_fields),
             ("Refresh", self.load_doctors)
         ]
-        self.d_tree = self.setup_base_screen(self.tab_doctors, fields, callbacks, ("id", "name", "specialty"), self.on_doctor_double, self.load_doctors)
+        self.d_tree = self.setup_base_screen(self.tab_doctors, fields, callbacks, ("id", "name", "specialty", "phone", "gender"), self.on_doctor_double, self.load_doctors)
         self.d_fields = self.fields
         self.load_doctors()
 
     def load_doctors(self):
         for r in self.d_tree.get_children(): self.d_tree.delete(r)
         for row in s.load_entities("doctors"):
-            # rows are dicts: {'doctor_id','name','specialty'}
-            self.d_tree.insert("", "end", values=(row.get('doctor_id'), row.get('name'), row.get('specialty')))
+            # rows are dicts: {'doctor_id','name','specialty','phone','gender'}
+            phone = row.get('phone') or ""
+            gender = row.get('gender') or ""
+            self.d_tree.insert("", "end", values=(row.get('doctor_id'), row.get('name'), row.get('specialty'), phone, gender))
 
     def clear_doctor_fields(self):
         for k in self.d_fields: 
@@ -190,16 +202,18 @@ class HospitalApp:
 
     def _d_add(self):
         name = self.d_fields['d_name'].get().strip(); spec = self.d_fields['d_spec'].get().strip()
+        phone = self.d_fields['d_phone'].get().strip(); gender = self.d_fields['d_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
-        try: s.add_doctor(name, spec); messagebox.showinfo("Success", "Doctor added"); self.clear_doctor_fields(); self.load_doctors()
+        try: s.add_doctor(name, spec, phone, gender); messagebox.showinfo("Success", "Doctor added"); self.clear_doctor_fields(); self.load_doctors()
         except Exception as e: messagebox.showerror("Error", str(e))
     
     def _d_update(self):
         did = self.d_fields['d_id'].get().strip()
         if not did: messagebox.showerror("Error", "Enter doctor ID"); return
         name = self.d_fields['d_name'].get().strip(); spec = self.d_fields['d_spec'].get().strip()
+        phone = self.d_fields['d_phone'].get().strip(); gender = self.d_fields['d_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
-        try: s.update_doctor(did, name, spec); messagebox.showinfo("Success", f"Doctor {did} updated"); self.load_doctors()
+        try: s.update_doctor(did, name, spec, phone, gender); messagebox.showinfo("Success", f"Doctor {did} updated"); self.load_doctors()
         except Exception as e: messagebox.showerror("Error", str(e))
         
     def _d_delete(self):
@@ -217,6 +231,8 @@ class HospitalApp:
         self.d_fields['d_id'].delete(0, tk.END); self.d_fields['d_id'].insert(0, vals[0])
         self.d_fields['d_name'].delete(0, tk.END); self.d_fields['d_name'].insert(0, vals[1])
         self.d_fields['d_spec'].delete(0, tk.END); self.d_fields['d_spec'].insert(0, vals[2])
+        self.d_fields['d_phone'].delete(0, tk.END); self.d_fields['d_phone'].insert(0, vals[3] if vals[3] else "")
+        self.d_fields['d_gender_var'].set(vals[4] if vals[4] else "")
 
     # --- Treatment Screen (T) ---
     def build_treatments_tab(self):

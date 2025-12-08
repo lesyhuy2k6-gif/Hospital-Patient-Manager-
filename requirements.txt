@@ -1,0 +1,6 @@
+Programming Language: Python 3.14
+Database Management System: MySQL 8.4
+GUI Framework: Tkinter (for desktop interface)
+Database Connectivity: mysql-connector-python
+IDE/Development Tools: VSCode
+Version Control: GitHub

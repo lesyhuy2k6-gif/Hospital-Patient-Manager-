@@ -3,7 +3,6 @@ HOSPITAL-PATIENT-MANAGER_1/
 ├── .vscode/                       # VS Code configuration (optional)
 │   └── settings.json
 ├── app/                           # Core application source code
-│   ├── __pycache__/               # Python bytecode cache (ignored by Git)
 │   ├── db/                        # Database interactions and setup    
 │   │   ├── connection.py          # Database connection/configuration helper
 │   │   ├── schema.sql             # SQL script for creating tables/structure
@@ -12,7 +11,9 @@ HOSPITAL-PATIENT-MANAGER_1/
 │   ├── main.py                    # Main application/server entry point
 │   ├── queries.py                 # Raw or complex database query functions
 │   └── services.py                # Business logic/service layer (e.g., patient check-in logic)
-├── latex/                         # Placeholder for documentation/reports 
+├── doc/
+│  ├── latex.pdf
+│  └── slides.pdf                        # Placeholder for documentation/reports 
 ├── requirements.txt               # Project dependencies 
 ├── README.md                      # Project overview and setup instructions
 └── .env.example.txt               # Example for environment variables (DB credentials, secret keys)

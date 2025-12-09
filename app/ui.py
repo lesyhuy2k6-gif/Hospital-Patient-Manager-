@@ -25,18 +25,19 @@ def parse_date_or_none(date_str):
 
 class HospitalApp:
     def __init__(self, root):
-        # --- COLOR THEME CONFIGURATION ---
+        # --- COLOR THEME CONFIGURATION (MODIFIED FOR SEA THEME) ---
         self.colors = {
-            'bg_main': '#f0f0f0',        # Main background
-            'bg_dark': '#2c3e50',        # Dark background (header)
-            'bg_light': '#ecf0f1',       # Light background
-            'text_dark': '#2c3e50',      # Dark text
-            'text_light': '#ffffff',     # Light text
-            'primary': '#3498db',        # Primary color (buttons)
-            'success': '#27ae60',        # Success color (add button)
-            'danger': '#e74c3c',         # Danger color (delete button)
+            # Light Blue Sea Theme
+            'bg_main': '#F0F8FF',        # Main background (Alice Blue - very light)
+            'bg_dark': '#1C5B7C',        # Dark background (Deep Teal/Ocean Blue - for headers)
+            'bg_light': '#E0FFFF',       # Light background (Azure - for treeviews)
+            'text_dark': '#1C5B7C',      # Dark text (Matches bg_dark)
+            'text_light': '#ffffff',     # Light text (white)
+            'primary': '#4682B4',        # Primary color (Steel Blue - for buttons/selected tabs)
+            'success': '#27ae60',        # Success color (Keep green)
+            'danger': '#e74c3c',         # Danger color (Keep red)
             'warning': '#f39c12',        # Warning color
-            'border': '#bdc3c7'          # Border color
+            'border': '#ADD8E6'          # Border color (Light Blue)
         }
         
         # --- Root Setup ---
@@ -44,6 +45,7 @@ class HospitalApp:
         root.title("Hospital Management System")
         w, h = root.winfo_screenwidth(), root.winfo_screenheight()
         root.geometry(f"{int(w*0.85)}x{int(h*0.80)}+20+20")
+        # Apply light background color to root (part of gradient effect)
         root.configure(bg=self.colors['bg_main'])
         
         # --- TTK STYLE CONFIGURATION ---
@@ -55,6 +57,7 @@ class HospitalApp:
         style.configure('TFrame', background=self.colors['bg_main'])
         style.configure('TNotebook', background=self.colors['bg_main'])
         style.configure('TNotebook.Tab', padding=[20, 10], font=('Arial', 10))
+        # Use new primary color for selected tabs
         style.map('TNotebook.Tab', background=[('selected', self.colors['primary'])])
         
         style.configure('TButton', font=('Arial', 10), padding=5)
@@ -66,13 +69,15 @@ class HospitalApp:
         style.configure('Treeview', background=self.colors['bg_light'], 
                        foreground=self.colors['text_dark'], fieldbackground=self.colors['bg_light'],
                        font=('Arial', 9), rowheight=25)
+        # Treeview headings use the primary color and light text
         style.configure('Treeview.Heading', background=self.colors['primary'], 
                        foreground=self.colors['text_light'], font=('Arial', 10, 'bold'))
         style.map('Treeview', background=[('selected', self.colors['primary'])])
         
-        # --- Main Title ---
+        # --- Main Title (Striped Text/Header Effect) ---
+        # Using bd=4 and relief="groove" with the dark background color creates a stripe-like, defined header.
         tk.Label(root, text="Hospital Management System", font=("Arial", 20, "bold"), 
-                bd=2, relief="groove", pady=6, bg=self.colors['bg_dark'], 
+                bd=4, relief="groove", pady=6, bg=self.colors['bg_dark'], 
                 fg=self.colors['text_light']).pack(fill="x")
         
         # --- Tab Navigation ---

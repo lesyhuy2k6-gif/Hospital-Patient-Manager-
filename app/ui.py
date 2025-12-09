@@ -110,13 +110,37 @@ class HospitalApp:
         for w in frame.winfo_children(): w.destroy()
 
     def _validate_alpha(self, proposed: str) -> bool:
-        """Validate that the proposed value contains only letters, spaces, hyphens or apostrophes.
+        """Validate that the proposed value contains only letters, spaces, hyphens, periods, or apostrophes.
         Used as a `validatecommand` for Entry widgets. Empty string is allowed during editing.
         """
         if proposed is None or proposed == "":
             return True
-        return bool(re.match(r"^[A-Za-z\s\-']*$", proposed))
+        # CHANGE: Added '.' inside the character class to allow periods for names/titles like 'Dr. J. Doe'
+        return bool(re.match(r"^[A-Za-z\s\-\.']*$", proposed))
 
+    def _validate_phone_chars(self, proposed: str) -> bool:
+        """Validate that the proposed value contains only digits, spaces, hyphens, plus signs, or parentheses.
+        Used as a `validatecommand` for Entry widgets. Empty string is allowed during editing.
+        """
+        if proposed is None or proposed == "":
+            return True
+        # Allows 0-9, spaces, hyphens, plus sign, and parentheses
+        return bool(re.match(r"^[0-9\s\-\+\(\)]*$", proposed))
+
+    def _validate_cost_input(self, proposed: str) -> bool:
+        """Validate that the proposed value is a valid non-negative decimal string (0-9 and one dot only).
+        Empty string is allowed. Prevents invalid characters from being typed.
+        """
+        if proposed is None or proposed == "":
+            return True
+        # Check for non-negativity in this UI validator: must not start with '-'
+        if proposed.startswith('-'):
+            return False
+        
+        # Check if it matches a non-negative float format (e.g., 123, 123.00, .5, 0.5)
+        # Using a strict regex that only allows one dot and digits
+        return bool(re.match(r"^\d*\.?\d*$", proposed))
+    
     def setup_base_screen(self, frame, fields, callbacks, cols, double_click_handler, load_func):
         self.clear_container(frame)
         
@@ -173,9 +197,16 @@ class HospitalApp:
         self.p_fields = self.fields
         # Add live validation to the Patient Name entry to disallow digits
         try:
-            vcmd = (self.root.register(self._validate_alpha), '%P')
+            vcmd_alpha = (self.root.register(self._validate_alpha), '%P')
             if 'p_name' in self.p_fields and isinstance(self.p_fields['p_name'], tk.Entry):
-                self.p_fields['p_name'].config(validate='key', validatecommand=vcmd)
+                self.p_fields['p_name'].config(validate='key', validatecommand=vcmd_alpha)
+        except Exception:
+            pass
+        # Add live validation to the Patient Phone entry to restrict characters
+        try:
+            vcmd_phone = (self.root.register(self._validate_phone_chars), '%P')
+            if 'p_phone' in self.p_fields and isinstance(self.p_fields['p_phone'], tk.Entry):
+                self.p_fields['p_phone'].config(validate='key', validatecommand=vcmd_phone)
         except Exception:
             pass
         self.load_patients()
@@ -195,9 +226,9 @@ class HospitalApp:
 
     def _p_add(self):
         name = self.p_fields['p_name'].get().strip(); bdate = self.p_fields['p_bdate'].get().strip()
-        # Validate name contains only alphabetic characters, spaces, hyphens or apostrophes
-        if not re.match(r"^[A-Za-z\s\-']+$", name):
-            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+        # Validate name contains only alphabetic characters, spaces, hyphens, periods or apostrophes
+        if not re.match(r"^[A-Za-z\s\-\.']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters, spaces, hyphens, periods, or apostrophes.")
             return
         phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
@@ -208,8 +239,8 @@ class HospitalApp:
         pid = self.p_fields['p_id'].get().strip()
         if not pid: messagebox.showerror("Error", "Enter patient ID (or double-click a row)."); return
         name = self.p_fields['p_name'].get().strip(); bdate = self.p_fields['p_bdate'].get().strip()
-        if not re.match(r"^[A-Za-z\s\-']+$", name):
-            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+        if not re.match(r"^[A-Za-z\s\-\.']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters, spaces, hyphens, periods, or apostrophes.")
             return
         phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
@@ -220,7 +251,8 @@ class HospitalApp:
         sel = self.p_tree.selection()
         if not sel: messagebox.showerror("Error", "Select a patient row first."); return
         pid = self.p_tree.item(sel[0], "values")[0]
-        if messagebox.askyesno("Confirm", f"Delete patient {pid}?"):
+        # Confirmation message updated for ON DELETE CASCADE
+        if messagebox.askyesno("Confirm", f"Delete patient {pid}? All associated sessions will also be deleted."):
             try: s.delete_entity("patients", pid); messagebox.showinfo("Deleted", f"Patient {pid} deleted"); self.load_patients()
             except Exception as e: messagebox.showerror("Error", str(e))
 
@@ -257,9 +289,16 @@ class HospitalApp:
         self.d_fields = self.fields
         # Add live validation to the Name entry to disallow digits
         try:
-            vcmd = (self.root.register(self._validate_alpha), '%P')
+            vcmd_alpha = (self.root.register(self._validate_alpha), '%P')
             if 'd_name' in self.d_fields and isinstance(self.d_fields['d_name'], tk.Entry):
-                self.d_fields['d_name'].config(validate='key', validatecommand=vcmd)
+                self.d_fields['d_name'].config(validate='key', validatecommand=vcmd_alpha)
+        except Exception:
+            pass
+        # Add live validation to the Doctor Phone entry to restrict characters
+        try:
+            vcmd_phone = (self.root.register(self._validate_phone_chars), '%P')
+            if 'd_phone' in self.d_fields and isinstance(self.d_fields['d_phone'], tk.Entry):
+                self.d_fields['d_phone'].config(validate='key', validatecommand=vcmd_phone)
         except Exception:
             pass
         self.load_doctors()
@@ -288,9 +327,9 @@ class HospitalApp:
 
     def _d_add(self):
         name = self.d_fields['d_name'].get().strip()
-        # Validate name contains only alphabetic characters, spaces, hyphens or apostrophes
-        if not re.match(r"^[A-Za-z\s\-']+$", name):
-            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+        # Validate name contains only alphabetic characters, spaces, hyphens, periods or apostrophes
+        if not re.match(r"^[A-Za-z\s\-\.']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters, spaces, hyphens, periods, or apostrophes.")
             return
         # read specialty from var if present (combobox), otherwise widget
         spec = self.d_fields['d_spec_var'].get().strip() if 'd_spec_var' in self.d_fields else self.d_fields['d_spec'].get().strip()
@@ -303,8 +342,8 @@ class HospitalApp:
         did = self.d_fields['d_id'].get().strip()
         if not did: messagebox.showerror("Error", "Enter doctor ID"); return
         name = self.d_fields['d_name'].get().strip()
-        if not re.match(r"^[A-Za-z\s\-']+$", name):
-            messagebox.showerror("Error", "Name must contain only alphabetic characters and spaces")
+        if not re.match(r"^[A-Za-z\s\-\.']+$", name):
+            messagebox.showerror("Error", "Name must contain only alphabetic characters, spaces, hyphens, periods, or apostrophes.")
             return
         spec = self.d_fields['d_spec_var'].get().strip() if 'd_spec_var' in self.d_fields else self.d_fields['d_spec'].get().strip()
         phone = self.d_fields['d_phone'].get().strip(); gender = self.d_fields['d_gender_var'].get()
@@ -316,7 +355,8 @@ class HospitalApp:
         sel = self.d_tree.selection()
         if not sel: messagebox.showerror("Error", "Select doctor row first"); return
         did = self.d_tree.item(sel[0], "values")[0]
-        if messagebox.askyesno("Confirm", f"Delete doctor {did}? Sessions will set doctor_id NULL."):
+        # Confirmation message updated for ON DELETE CASCADE
+        if messagebox.askyesno("Confirm", f"Delete doctor {did}? All associated sessions will also be deleted."):
             try: s.delete_entity("doctors", did); messagebox.showinfo("Deleted", f"Doctor {did} deleted"); self.load_doctors()
             except Exception as e: messagebox.showerror("Error", str(e))
 
@@ -348,6 +388,23 @@ class HospitalApp:
         ]
         self.t_tree = self.setup_base_screen(self.tab_treatments, fields, callbacks, ("id", "name", "cost"), self.on_treatment_double, self.load_treatments)
         self.t_fields = self.fields
+        
+        # Apply name validation
+        try:
+            vcmd_alpha = (self.root.register(self._validate_alpha), '%P')
+            if 't_name' in self.t_fields and isinstance(self.t_fields['t_name'], tk.Entry):
+                self.t_fields['t_name'].config(validate='key', validatecommand=vcmd_alpha)
+        except Exception:
+            pass
+            
+        # Apply cost validation
+        try:
+            vcmd_cost = (self.root.register(self._validate_cost_input), '%P')
+            if 't_cost' in self.t_fields and isinstance(self.t_fields['t_cost'], tk.Entry):
+                self.t_fields['t_cost'].config(validate='key', validatecommand=vcmd_cost)
+        except Exception:
+            pass
+
         self.load_treatments()
 
     def load_treatments(self):
@@ -361,19 +418,75 @@ class HospitalApp:
         for k in self.t_fields: 
             if isinstance(self.t_fields[k], tk.Entry): self.t_fields[k].delete(0, tk.END)
 
+    def _is_treatment_name_unique(self, name: str, exclude_id: str = None) -> bool:
+        """Checks if a treatment name is unique across all treatments, excluding an ID if provided."""
+        existing_treatments = s.load_entities("treatments")
+        
+        # Case insensitive comparison
+        normalized_name = name.lower()
+        
+        for treatment in existing_treatments:
+            tid = treatment.get('treatment_id')
+            tname = treatment.get('name', '').lower()
+            
+            # Check if names match AND the current ID is NOT the one we are excluding
+            if normalized_name == tname and (exclude_id is None or str(tid) != str(exclude_id)):
+                return False
+        return True
+
     def _t_add(self):
-        name = self.t_fields['t_name'].get().strip(); cost = self.t_fields['t_cost'].get().strip()
+        name = self.t_fields['t_name'].get().strip(); cost_s = self.t_fields['t_cost'].get().strip()
+        
         if not name: messagebox.showerror("Error", "Name required"); return
-        try: s.add_treatment(name, cost); messagebox.showinfo("Success", "Treatment added"); self.clear_treatment_fields(); self.load_treatments()
-        except Exception as e: messagebox.showerror("Error", str(e))
+        
+        # 1. Unique Name Check
+        if not self._is_treatment_name_unique(name):
+            messagebox.showerror("Error", f"Treatment name '{name}' already exists. Name must be unique.")
+            return
+            
+        # 2. Non-Negative Cost Check
+        try:
+            cost = float(cost_s or 0.0)
+            if cost < 0:
+                messagebox.showerror("Error", "Cost cannot be negative.")
+                return
+        except ValueError:
+            messagebox.showerror("Error", "Cost must be a valid number (e.g., 150.00).")
+            return
+            
+        # 3. Add to Service
+        try: 
+            s.add_treatment(name, cost); messagebox.showinfo("Success", "Treatment added"); self.clear_treatment_fields(); self.load_treatments()
+        except Exception as e: 
+            messagebox.showerror("Error", str(e))
     
     def _t_update(self):
         tid = self.t_fields['t_id'].get().strip()
         if not tid: messagebox.showerror("Error", "Enter treatment ID"); return
-        name = self.t_fields['t_name'].get().strip(); cost = self.t_fields['t_cost'].get().strip()
+        
+        name = self.t_fields['t_name'].get().strip(); cost_s = self.t_fields['t_cost'].get().strip()
         if not name: messagebox.showerror("Error", "Name required"); return
-        try: s.update_treatment(tid, name, cost); messagebox.showinfo("Success", f"Treatment {tid} updated"); self.load_treatments()
-        except Exception as e: messagebox.showerror("Error", str(e))
+        
+        # 1. Unique Name Check (Excluding the current ID)
+        if not self._is_treatment_name_unique(name, exclude_id=tid):
+            messagebox.showerror("Error", f"Treatment name '{name}' already exists. Name must be unique.")
+            return
+
+        # 2. Non-Negative Cost Check
+        try:
+            cost = float(cost_s or 0.0)
+            if cost < 0:
+                messagebox.showerror("Error", "Cost cannot be negative.")
+                return
+        except ValueError:
+            messagebox.showerror("Error", "Cost must be a valid number (e.g., 150.00).")
+            return
+
+        # 3. Update Service
+        try: 
+            s.update_treatment(tid, name, cost); messagebox.showinfo("Success", f"Treatment {tid} updated"); self.load_treatments()
+        except Exception as e: 
+            messagebox.showerror("Error", str(e))
         
     def _t_delete(self):
         sel = self.t_tree.selection()
@@ -461,13 +574,51 @@ class HospitalApp:
             try: s.delete_entity("sessions", sid); messagebox.showinfo("Deleted", f"Session {sid} deleted"); self.load_sessions()
             except Exception as e: messagebox.showerror("Error", str(e))
 
+    def _get_id_from_display(self, display_string):
+        """Extracts the ID from a display string like '123: Name'."""
+        if display_string and ":" in display_string:
+            try:
+                # Use find(':') to handle potential ':' in the Name itself
+                return display_string[:display_string.find(':')].strip()
+            except:
+                return None
+        return None
+
     def on_session_double(self, event):
         sel = self.s_tree.selection(); 
         if not sel: return
         vals = self.s_tree.item(sel[0], "values")
-        self.s_fields['s_id'].delete(0, tk.END); self.s_fields['s_id'].insert(0, vals[0])
-        self.s_fields['s_patient_var'].set(vals[1]); self.s_fields['s_doctor_var'].set(vals[2]); self.s_fields['s_treatment_var'].set(vals[3])
-        self.s_fields['s_date'].delete(0, tk.END); self.s_fields['s_date'].insert(0, vals[4])
+        
+        self.s_fields['s_id'].delete(0, tk.END); 
+        self.s_fields['s_id'].insert(0, vals[0])
+
+        # Helper to safely set combobox values based on the ID,
+        # ensuring the value exactly matches one of the combobox options.
+        def safe_set_fk(var_name, treeview_val, cb_widget):
+            tree_id = self._get_id_from_display(treeview_val)
+            found_match = ""
+            if tree_id:
+                # Iterate through options to find the exact match by ID
+                for option in cb_widget['values']:
+                    if option.startswith(f"{tree_id}:"):
+                        found_match = option
+                        break
+            
+            # Set the exact match, or the raw value (which will clear the combobox
+            # if no exact match was found, e.g., if the FK is NULL).
+            self.s_fields[var_name].set(found_match or treeview_val) 
+
+        # Patient (vals[1])
+        safe_set_fk('s_patient_var', vals[1], self.s_fields['s_patient'])
+        
+        # Doctor (vals[2]) - FIX IMPLEMENTATION
+        safe_set_fk('s_doctor_var', vals[2], self.s_fields['s_doctor'])
+
+        # Treatment (vals[3])
+        safe_set_fk('s_treatment_var', vals[3], self.s_fields['s_treatment'])
+
+        self.s_fields['s_date'].delete(0, tk.END); 
+        self.s_fields['s_date'].insert(0, vals[4])
 
     # =========================================================================
     # NEW: GLOBAL SEARCH TAB

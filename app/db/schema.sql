@@ -50,11 +50,11 @@ CREATE TABLE sessions (
 
     -- Foreign Keys with cascade options for integrity
     FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
-        ON DELETE SET NULL
+        ON DELETE CASCADE
         ON UPDATE CASCADE,
 
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
-        ON DELETE SET NULL
+        ON DELETE CASCADE
         ON UPDATE CASCADE,
 
     FOREIGN KEY (treatment_id) REFERENCES treatments(treatment_id)

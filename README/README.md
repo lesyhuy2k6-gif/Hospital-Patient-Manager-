@@ -92,9 +92,14 @@ Once the dependencies are installed and the database is configured, you can laun
 
 The application uses **Tkinter** to provide a responsive, native desktop experience for staff.
 
-  * [![alt text](image.png)]
-  * [![alt text](image-1.png)]
-  
+  * [![alt text](Patient.png)]
+  * [![alt text](Doctors.png)]
+  * [![alt text](Treatments.png)]
+  * [![alt text](Sessions.png)]
+  * [![alt text](Global_Search.png)]
+  * [![alt text](Reports.png)]
+  * [![alt text](Dashboard_1.png)]
+  * [![alt text](Dashboard_2.png)]
 
 -----
 
@@ -102,8 +107,7 @@ The application uses **Tkinter** to provide a responsive, native desktop experie
 
 A link to the application demonstration is provided below:
 
-  * **YouTube Demo Link:** [Placeholder: Insert YouTube URL Here]
-
------
+  * **YouTube Demo Link:** [[Placeholder: Insert YouTube URL Here](https://www.youtube.com/watch?v=8SzZmtyLxrw)]
+------
 
 What content would you like to draft next? We could define the contents for the **`requirements.txt`** file.

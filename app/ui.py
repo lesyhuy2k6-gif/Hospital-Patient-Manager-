@@ -25,19 +25,23 @@ def parse_date_or_none(date_str):
 
 class HospitalApp:
     def __init__(self, root):
-        # --- COLOR THEME CONFIGURATION (MODIFIED FOR SEA THEME) ---
+        # --- COLOR THEME CONFIGURATION (Vibrant Sea Theme - UPDATED BACKGROUND) ---
         self.colors = {
-            # Light Blue Sea Theme
-            'bg_main': '#F0F8FF',        # Main background (Alice Blue - very light)
-            'bg_dark': '#1C5B7C',        # Dark background (Deep Teal/Ocean Blue - for headers)
-            'bg_light': '#E0FFFF',       # Light background (Azure - for treeviews)
-            'text_dark': '#1C5B7C',      # Dark text (Matches bg_dark)
-            'text_light': '#ffffff',     # Light text (white)
-            'primary': '#4682B4',        # Primary color (Steel Blue - for buttons/selected tabs)
-            'success': '#27ae60',        # Success color (Keep green)
-            'danger': '#e74c3c',         # Danger color (Keep red)
-            'warning': '#f39c12',        # Warning color
-            'border': '#ADD8E6'          # Border color (Light Blue)
+            # Base/Background
+            'bg_main': '#F8F9F9',        # UPDATED: Almost White/Root window background
+            'bg_dark': '#154360',        # Very Deep Blue (Ocean/Header Stripe)
+            'bg_content': '#F4F8F9',     # NEW: Pale Gray-Blue (Background for TFrame, behind buttons/inputs)
+            'bg_light': '#D6EAF8',       # Light Azure (Treeviews/Input Fields)
+            'text_dark': '#154360',      # Deep Blue text
+            'text_light': '#ffffff',     # White text
+            
+            # Action Colors (Vibrant/Dynamic)
+            'primary': "#487AA0",        # Amber/Bright Orange (For Clear, Refresh, General Reports)
+            'info': '#3498DB',           # Bright Standard Blue (For Update & Selected Tabs/Headers)
+            'success': '#27AE60',        # Emerald Green (For Add)
+            'danger': '#E74C3C',         # Bright Red (For Delete)
+            'warning': '#f39c12',        # Same as primary
+            'border': '#A9CCE3'          # Medium Blue
         }
         
         # --- Root Setup ---
@@ -45,39 +49,68 @@ class HospitalApp:
         root.title("Hospital Management System")
         w, h = root.winfo_screenwidth(), root.winfo_screenheight()
         root.geometry(f"{int(w*0.85)}x{int(h*0.80)}+20+20")
-        # Apply light background color to root (part of gradient effect)
+        # Configures the ROOT WINDOW background
         root.configure(bg=self.colors['bg_main'])
         
         # --- TTK STYLE CONFIGURATION ---
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Configure styles for ttk widgets
-        style.configure('TLabel', background=self.colors['bg_main'], foreground=self.colors['text_dark'])
-        style.configure('TFrame', background=self.colors['bg_main'])
-        style.configure('TNotebook', background=self.colors['bg_main'])
-        style.configure('TNotebook.Tab', padding=[20, 10], font=('Arial', 10))
-        # Use new primary color for selected tabs
-        style.map('TNotebook.Tab', background=[('selected', self.colors['primary'])])
+        # TFrame is the background for the tab content area (where buttons/inputs sit)
+        style.configure('TFrame', background=self.colors['bg_content'])
+        # TLabels inherit from TFrame background
+        style.configure('TLabel', background=self.colors['bg_content'], foreground=self.colors['text_dark'])
+        style.configure('TNotebook', background=self.colors['bg_content'])
+        style.configure('TNotebook.Tab', padding=[20, 10], font=('Arial', 10, 'bold'))
+        # Selected tabs use the 'info' color
+        style.map('TNotebook.Tab', background=[('selected', self.colors['info'])])
         
-        style.configure('TButton', font=('Arial', 10), padding=5)
+        # Configure Default Button Style (Primary Color - used for Clear, Refresh, Search)
+        style.configure('TButton', 
+                       font=('Arial', 10, 'bold'), 
+                       padding=8, # Increased padding for modern look
+                       background=self.colors['primary'],
+                       foreground=self.colors['text_light'],
+                       relief="raised")
         style.map('TButton',
-                  background=[('active', self.colors['primary']),
-                              ('pressed', self.colors['bg_dark'])])
+                  background=[('active', '#FAD7A0'), # Lighter hover color (Dynamic)
+                              ('pressed', self.colors['bg_dark'])],
+                  foreground=[('active', self.colors['bg_dark'])])
+
+        # Configure Success Button Style (Add)
+        style.configure('Success.TButton', background=self.colors['success']) 
+        style.map('Success.TButton',
+                  background=[('active', '#A2D9CE'), # Lighter hover color (Dynamic)
+                              ('pressed', self.colors['bg_dark'])],
+                  foreground=[('active', self.colors['bg_dark'])])
+                  
+        # Configure Danger Button Style (Delete)
+        style.configure('Danger.TButton', background=self.colors['danger']) 
+        style.map('Danger.TButton',
+                  background=[('active', '#F5B7B1'), # Lighter hover color (Dynamic)
+                              ('pressed', self.colors['bg_dark'])],
+                  foreground=[('active', self.colors['bg_dark'])])
+                      
+        # Configure Info Button Style (Update)
+        style.configure('Info.TButton', background=self.colors['info']) 
+        style.map('Info.TButton',
+                  background=[('active', '#AED6F1'), # Lighter hover color (Dynamic)
+                              ('pressed', self.colors['bg_dark'])],
+                  foreground=[('active', self.colors['bg_dark'])])
         
         # Configure Treeview style
         style.configure('Treeview', background=self.colors['bg_light'], 
                        foreground=self.colors['text_dark'], fieldbackground=self.colors['bg_light'],
                        font=('Arial', 9), rowheight=25)
-        # Treeview headings use the primary color and light text
-        style.configure('Treeview.Heading', background=self.colors['primary'], 
+        # Treeview headings use the 'info' color for visual contrast
+        style.configure('Treeview.Heading', background=self.colors['info'], 
                        foreground=self.colors['text_light'], font=('Arial', 10, 'bold'))
-        style.map('Treeview', background=[('selected', self.colors['primary'])])
+        # Treeview selection uses 'info' color
+        style.map('Treeview', background=[('selected', self.colors['info'])])
         
-        # --- Main Title (Striped Text/Header Effect) ---
-        # Using bd=4 and relief="groove" with the dark background color creates a stripe-like, defined header.
+        # --- Main Title (Enhanced Stripe Effect) ---
         tk.Label(root, text="Hospital Management System", font=("Arial", 20, "bold"), 
-                bd=4, relief="groove", pady=6, bg=self.colors['bg_dark'], 
+                bd=6, relief="ridge", pady=6, bg=self.colors['bg_dark'], 
                 fg=self.colors['text_light']).pack(fill="x")
         
         # --- Tab Navigation ---
@@ -167,10 +200,25 @@ class HospitalApp:
                 self.fields[var_name] = cb
             row += 1
 
-        # Buttons Setup...
+        # Buttons Setup... (MODIFIED TO USE TTK BUTTONS AND CUSTOM STYLES)
         bf = tk.Frame(left); bf.grid(row=row, column=0, columnspan=2, pady=10)
         for text, cmd in callbacks:
-            tk.Button(bf, text=text, width=14 if text == "Delete Selected" else 10, command=cmd).pack(side="left", padx=4)
+            button_style = 'TButton' # Default: Clear, Refresh, which use the Primary (Amber) color
+            button_width = 12
+            
+            if text == "Add":
+                button_style = 'Success.TButton' # Emerald Green
+            elif text == "Update":
+                button_style = 'Info.TButton'    # Standard Blue
+            elif text == "Delete Selected":
+                button_style = 'Danger.TButton'  # Bright Red
+                button_width = 16
+                
+            # Use ttk.Button to apply styles correctly
+            ttk.Button(bf, text=text, 
+                       width=button_width, 
+                       command=cmd,
+                       style=button_style).pack(side="left", padx=6) # Increased padx for spacing
 
         # Table Setup...
         right = tk.Frame(base_frame); right.pack(side="right", fill="both", expand=True, padx=8)
@@ -235,8 +283,26 @@ class HospitalApp:
         if not re.match(r"^[A-Za-z\s\-\.']+$", name):
             messagebox.showerror("Error", "Name must contain only alphabetic characters, spaces, hyphens, periods, or apostrophes.")
             return
+
+        # --- NEW: BIRTHDATE VALIDATION ---
+        if bdate:
+            try:
+                bdate_obj = parse_date_or_none(bdate)
+                
+                # Check 1: Birthdate cannot be in 2025 or later (cannot be OVER 2024)
+                # Set the hard limit to December 31, 2024 as requested by the user
+                MAX_ALLOWED_DATE = date(2024, 12, 31) 
+                
+                if bdate_obj and bdate_obj > MAX_ALLOWED_DATE:
+                    messagebox.showerror("Validation Error", "Patient birthdate cannot be after December 31, 2024.")
+                    return
+            except ValueError:
+                messagebox.showerror("Validation Error", "Invalid date format. Please use YYYY-MM-DD (e.g., 2000-12-31).")
+                return
+
         phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
+        
         try: s.add_patient(name, bdate, phone, gender); messagebox.showinfo("Success", "Patient added"); self.clear_patient_fields(); self.load_patients()
         except Exception as e: messagebox.showerror("Error", str(e))
     
@@ -247,6 +313,22 @@ class HospitalApp:
         if not re.match(r"^[A-Za-z\s\-\.']+$", name):
             messagebox.showerror("Error", "Name must contain only alphabetic characters, spaces, hyphens, periods, or apostrophes.")
             return
+
+        # --- NEW: BIRTHDATE VALIDATION ---
+        if bdate:
+            try:
+                bdate_obj = parse_date_or_none(bdate)
+                
+                # Check 1: Birthdate cannot be in 2025 or later (cannot be OVER 2024)
+                MAX_ALLOWED_DATE = date(2024, 12, 31) 
+                
+                if bdate_obj and bdate_obj > MAX_ALLOWED_DATE:
+                    messagebox.showerror("Validation Error", "Patient birthdate cannot be after December 31, 2024.")
+                    return
+            except ValueError:
+                messagebox.showerror("Validation Error", "Invalid date format. Please use YYYY-MM-DD (e.g., 2000-12-31).")
+                return
+
         phone = self.p_fields['p_phone'].get().strip(); gender = self.p_fields['p_gender_var'].get()
         if not name: messagebox.showerror("Error", "Name required"); return
         try: s.update_patient(pid, name, bdate, phone, gender); messagebox.showinfo("Success", f"Patient {pid} updated"); self.load_patients()
@@ -641,7 +723,8 @@ class HospitalApp:
         self.g_search = tk.StringVar()
         ttk.Entry(top, textvariable=self.g_search, width=40).pack(side="left", padx=5)
         
-        ttk.Button(top, text="Search Sessions", command=self.global_search_sessions).pack(side="left", padx=5)
+        # Use ttk.Button with default 'TButton' style (Amber/Orange)
+        ttk.Button(top, text="Search Sessions", command=self.global_search_sessions, style='TButton').pack(side="left", padx=5)
         
         # --- Results Treeview ---
         tree_frame = ttk.Frame(frame)
@@ -719,19 +802,20 @@ class HospitalApp:
         query_list_frame.pack(side="left", fill="y", padx=10, pady=10)
         
         ttk.Label(query_list_frame, text="1. Inner Join:").pack(anchor="w", pady=(5, 0))
-        ttk.Button(query_list_frame, text="Sessions by Patient/Treatment", command=self.report_inner_join).pack(fill="x", pady=2)
+        ttk.Button(query_list_frame, text="Sessions by Patient/Treatment", command=self.report_inner_join, style='TButton').pack(fill="x", pady=2)
 
         ttk.Label(query_list_frame, text="2. Left Join:").pack(anchor="w", pady=(10, 0))
-        ttk.Button(query_list_frame, text="All Patients (with/without Sessions)", command=self.report_left_join).pack(fill="x", pady=2)
+        ttk.Button(query_list_frame, text="All Patients (with/without Sessions)", command=self.report_left_join, style='TButton').pack(fill="x", pady=2)
         
         ttk.Label(query_list_frame, text="3. Multi-Table Join:").pack(anchor="w", pady=(10, 0))
-        ttk.Button(query_list_frame, text="Sessions (P, D, T)", command=self.report_multi_join).pack(fill="x", pady=2)
+        ttk.Button(query_list_frame, text="Sessions (P, D, T)", command=self.report_multi_join, style='TButton').pack(fill="x", pady=2)
 
         ttk.Label(query_list_frame, text="4. Subquery/Aggregation:").pack(anchor="w", pady=(10, 0))
-        ttk.Button(query_list_frame, text="High-cost Treatments & Patients", command=self.report_high_cost).pack(fill="x", pady=2)
+        ttk.Button(query_list_frame, text="High-cost Treatments & Patients", command=self.report_high_cost, style='TButton').pack(fill="x", pady=2)
 
         ttk.Separator(query_list_frame, orient="horizontal").pack(fill="x", pady=10)
-        ttk.Button(query_list_frame, text="Export Report CSV", command=self.export_report_csv).pack(fill="x", pady=5)
+        # Use 'Success.TButton' style for Export (a positive action)
+        ttk.Button(query_list_frame, text="Export Report CSV", command=self.export_report_csv, style='Success.TButton').pack(fill="x", pady=5)
         
         # --- Report Output (Right side) ---
         report_frame = ttk.LabelFrame(frame, text="Report Results", padding=10)

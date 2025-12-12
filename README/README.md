@@ -102,8 +102,4 @@ The application uses **Tkinter** to provide a responsive, native desktop experie
 
 A link to the application demonstration is provided below:
 
-  * **YouTube Demo Link:** [Placeholder: Insert YouTube URL Here]
-
------
-
-What content would you like to draft next? We could define the contents for the **`requirements.txt`** file.
+  https://youtu.be/8SzZmtyLxrw?si=286fgJNeOgMkwsFz

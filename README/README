@@ -68,7 +68,7 @@ Create and activate your virtual environment, then install the necessary Python 
 You must manually set up the database schema and initial data.
 
 1.  **Configure Connection:**
-      * Fill in your MySQL credentials (hostname, database name, username, password) in the **`db.connections.py** configuration file in the project root. The application will read this information via `app/db/connection.py`.
+      * Fill in your MySQL credentials (hostname, database name, username, password) in the **`db.env** configuration file in the project root. The application will read this information via `app/db/.env`.
 2.  **Create Schema:**
       * Open your MySQL client (Workbench, CLI, etc.) and **execute the SQL commands** contained within **`app/db/schema.sql`**. This creates the required tables (e.g., patients, services).
 3.  **Seed Data:**
